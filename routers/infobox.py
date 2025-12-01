@@ -1,8 +1,11 @@
 from fastapi import APIRouter
-from services.place_service import get_place_by_id
+from services.infobox_service import get_infobox
 
-router = APIRouter(prefix="/infobox", tags=["InfoBox"])
+router = APIRouter(prefix="/infobox", tags=["Infobox"])
 
 @router.get("/{place_id}")
-def get_place(place_id: int):
-    return get_place_by_id(place_id)
+def infobox(place_id: int):
+    data = get_infobox(place_id)
+    if data is None:
+        return {"error": "Place not found"}
+    return data
