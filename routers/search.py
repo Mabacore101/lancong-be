@@ -16,8 +16,8 @@ def search(query: str):
     """
     return search_places(query)
 
-@router.get("/ai")
-def search_ai(query: str, k: int = 5):
+@router.get("/semanticly")
+def search_semanticly(query: str, k: int = 5):
     """
     Semantic search menggunakan vector embeddings.
     Lebih pintar dari keyword search, bisa menangkap semantic similarity.
@@ -39,7 +39,7 @@ def search_with_rerank(
     3. Return 'top_k' hasil terbaik
     
     Paling akurat untuk mencari relevansi hasil pencarian.
-    Lebih lambat dari /ai tapi lebih presisi.
+    Lebih lambat dari /semanticly tapi lebih presisi.
     """
     return search_places_with_reranking(query, initial_k, top_k)
 

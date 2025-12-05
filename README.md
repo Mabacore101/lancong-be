@@ -123,7 +123,7 @@ Once the server is running, visit:
 
 ### Search
 - `GET /search/?query={query}` - Basic keyword search for places by name
-- `GET /search/ai?query={query}&k={k}` - Semantic search using vector embeddings
+- `GET /search/semanticly?query={query}&k={k}` - Semantic search using vector embeddings
 - `GET /search/rerank?query={query}&initial_k={initial_k}&top_k={top_k}` - Semantic search with reranking
 - `GET /search/rerank-advanced?query={query}&initial_k={initial_k}&top_k={top_k}&use_description={bool}` - Advanced reranking with description
 
@@ -157,7 +157,7 @@ This will:
 2. Generate embeddings for each place name
 3. Store embeddings back to Neo4j
 
-### Semantic Search (`/search/ai`)
+### Semantic Search (`/search/semanticly`)
 Uses bi-encoder model for fast semantic similarity search:
 - Fast retrieval (~50-100ms)
 - Handles synonyms and related concepts
