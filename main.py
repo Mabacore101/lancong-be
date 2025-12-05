@@ -40,10 +40,15 @@ def debug_config():
     """Debug endpoint to check configuration (remove in production)"""
     import config
     return {
-        "neo4j_uri_set": bool(config.NEO4J_URI and config.NEO4J_URI != "bolt://localhost:7687"),
-        "neo4j_user_set": bool(config.NEO4J_USER and config.NEO4J_USER != "neo4j"),
-        "neo4j_password_set": bool(config.NEO4J_PASSWORD and config.NEO4J_PASSWORD != "password"),
-        "ssl_cert_file": os.environ.get("SSL_CERT_FILE", "not set")
+        "neo4j_uri": config.NEO4J_URI[:30] + "..." if len(config.NEO4J_URI) > 30 else config.NEO4J_URI,
+        "neo4j_user": config.NEO4J_USER,
+        "neo4j_password_set": bool(config.NEO4J_PASSWORD and len(config.NEO4J_PASSWORD) > 5),
+        "ssl_cert_file": os.environ.get("SSL_CERT_FILE", "not set"),
+        "env_check": {
+            "NEO4J_URI_env": os.environ.get("NEO4J_URI", "NOT SET")[:30] + "...",
+            "NEO4J_USER_env": os.environ.get("NEO4J_USER", "NOT SET"),
+            "NEO4J_PASSWORD_env": "SET" if os.environ.get("NEO4J_PASSWORD") else "NOT SET"
+        }
     }
 
 if __name__ == "__main__":
