@@ -1,7 +1,8 @@
-fastapi
-uvicorn
-neo4j
-sentence-transformers
-python-dotenv
-SPARQLWrapper
-torch
+fastapi==0.123.9
+uvicorn==0.38.0
+neo4j==6.0.3
+python-dotenv==1.2.1
+SPARQLWrapper==2.0.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.0+cpu
+sentence-transformers==5.1.2
