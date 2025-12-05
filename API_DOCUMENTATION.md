@@ -8,12 +8,13 @@ Version: 1.0.0
 
 ## 📋 Table of Contents
 1. [Search Endpoints](#search-endpoints)
-2. [InfoBox Endpoint](#infobox-endpoint)
-3. [Package Endpoints](#package-endpoints)
-4. [Query Console Endpoint](#query-console-endpoint)
-5. [Response Format](#response-format)
-6. [Error Handling](#error-handling)
-7. [Integration Examples](#integration-examples)
+2. [Places Endpoint](#places-endpoint)
+3. [InfoBox Endpoint](#infobox-endpoint)
+4. [Package Endpoints](#package-endpoints)
+5. [Query Console Endpoint](#query-console-endpoint)
+6. [Response Format](#response-format)
+7. [Error Handling](#error-handling)
+8. [Integration Examples](#integration-examples)
 
 ---
 
@@ -204,12 +205,59 @@ GET /search/rerank-advanced?query=tempat wisata dengan pemandangan laut&top_k=5&
 
 ---
 
+## 📍 Places Endpoint
+
+### Get Place by ID
+**GET** `/places/{place_id}`
+
+Get basic information about a specific place by its ID.
+
+**Path Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `place_id` | integer | ✅ Yes | Unique place identifier |
+
+**Example Request:**
+```http
+GET /places/1
+```
+
+**Example Response:**
+```json
+{
+  "place": {
+    "id": 1,
+    "name": "Monumen Nasional",
+    "description": "Monumen Nasional atau yang populer disingkat dengan Monas...",
+    "category": "Budaya",
+    "city": "Jakarta",
+    "price": 20000,
+    "rating": 4.6,
+    "time_minutes": 15,
+    "lat": -6.1753924,
+    "long": 106.8271528
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "detail": "Place not found"
+}
+```
+
+**Use Case:** Simple place information retrieval  
+**Performance:** ~15-30ms
+
+---
+
 ## 📦 InfoBox Endpoint
 
-### Get Place Details
+### Get Place Details with Related Data
 **GET** `/infobox/{place_id}`
 
-Get complete information about a specific place.
+Get complete information about a specific place including related places and packages.
 
 **Path Parameters:**
 | Parameter | Type | Required | Description |
@@ -548,7 +596,16 @@ async function rerankSearch(query, topK = 5) {
   return await response.json();
 }
 
-// Get Place Details
+// Get Place (basic info)
+async function getPlace(placeId) {
+  const response = await fetch(`http://localhost:8000/places/${placeId}`);
+  if (!response.ok) {
+    throw new Error('Place not found');
+  }
+  return await response.json();
+}
+
+// Get Place Details (with related data)
 async function getPlaceDetails(placeId) {
   const response = await fetch(`http://localhost:8000/infobox/${placeId}`);
   if (!response.ok) {
@@ -656,8 +713,15 @@ def search_places(query, method="semantic", k=5):
     
     return response.json()
 
-# Get Place
+# Get Place (basic)
 def get_place(place_id):
+    response = requests.get(f"{BASE_URL}/places/{place_id}")
+    if response.status_code == 404:
+        return None
+    return response.json()
+
+# Get Place Details (with related data)
+def get_place_details(place_id):
     response = requests.get(f"{BASE_URL}/infobox/{place_id}")
     if response.status_code == 404:
         return None
@@ -775,6 +839,9 @@ curl "http://localhost:8000/search/semanticly?query=museum&k=5"
 
 # Reranking
 curl "http://localhost:8000/search/rerank?query=museum%20sejarah&top_k=5"
+
+# Places
+curl "http://localhost:8000/places/1"
 
 # InfoBox
 curl "http://localhost:8000/infobox/1"
