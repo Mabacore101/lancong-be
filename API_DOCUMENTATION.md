@@ -225,18 +225,16 @@ GET /places/1
 **Example Response:**
 ```json
 {
-  "place": {
-    "id": 1,
-    "name": "Monumen Nasional",
-    "description": "Monumen Nasional atau yang populer disingkat dengan Monas...",
-    "category": "Budaya",
-    "city": "Jakarta",
-    "price": 20000,
-    "rating": 4.6,
-    "time_minutes": 15,
-    "lat": -6.1753924,
-    "long": 106.8271528
-  }
+  "id": 1,
+  "name": "Monumen Nasional",
+  "description": "Monumen Nasional atau yang populer disingkat dengan Monas...",
+  "category": "Budaya",
+  "city": "Jakarta",
+  "price": 20000,
+  "rating": 4.6,
+  "time_minutes": 15,
+  "lat": -6.1753924,
+  "long": 106.8271528
 }
 ```
 
@@ -272,36 +270,27 @@ GET /infobox/1
 **Example Response:**
 ```json
 {
-  "place": {
-    "id": 1,
-    "name": "Monumen Nasional",
-    "description": "Monumen Nasional atau yang populer disingkat dengan Monas atau Tugu Monas...",
-    "category": "Budaya",
-    "city": "Jakarta",
-    "price": 20000,
-    "rating": 4.6,
-    "time_minutes": 15,
-    "coordinate": "{'lat': -6.1753924, 'lng': 106.8271528}",
-    "lat": -6.1753924,
-    "long": 106.8271528
-  },
-  "related_places": [
-    {
-      "id": 2,
-      "name": "Masjid Istiqlal",
-      "category": "Budaya",
-      "rating": 4.7
-    }
-  ],
-  "packages": [
-    {
-      "id": 3,
-      "name": "Jakarta Heritage Tour",
-      "places_count": 3
-    }
-  ]
+  "id": 2,
+  "name": "Kota Tua",
+  "description": "Kota tua di Jakarta, yang juga bernama Kota Tua, berpusat di Alun-Alun Fatahillah...",
+  "category": "Budaya",
+  "city": "Jakarta",
+  "price": 0,
+  "rating": 4.6,
+  "time_minutes": 90,
+  "lat": -6.1376448,
+  "long": 106.8171245,
+  "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Dome%20of%20the%20Rock%20by%20Peter%20Mulligan.jpg",
+  "wikidata_entity": "http://www.wikidata.org/entity/Q213274",
+  "description_id": "kota di Palestina"
 }
 ```
+
+**Response Fields:**
+- Standard place fields (id, name, description, category, city, price, rating, time_minutes, lat, long)
+- `image`: Image URL from Wikidata (if available)
+- `wikidata_entity`: Wikidata entity URI (if enriched with external data)
+- `description_id`: Indonesian description from Wikidata (if available)
 
 **Error Response (404):**
 ```json
@@ -310,7 +299,7 @@ GET /infobox/1
 }
 ```
 
-**Use Case:** Detailed place page, info panel  
+**Use Case:** Detailed place page, info panel with external knowledge enrichment  
 **Performance:** ~20-50ms
 
 ---
@@ -503,15 +492,19 @@ or for single place:
   price: number;
   rating: number;
   time_minutes?: number;
-  coordinate?: string;
   lat: number;
   long: number;
   
-  // Optional (depending on endpoint)
-  vector_score?: number;      // 0-1
-  rerank_score?: number;       // typically -10 to +15
-  name_score?: number;
-  description_score?: number;
+  // Optional - External Knowledge Graph enrichment (from Wikidata)
+  image?: string;                // Image URL from Wikidata
+  wikidata_entity?: string;      // Wikidata entity URI
+  description_id?: string;       // Indonesian description from Wikidata
+  
+  // Optional - Search-specific scores (depending on endpoint)
+  vector_score?: number;         // 0-1 (semantic similarity)
+  rerank_score?: number;         // typically -10 to +15 (relevance)
+  name_score?: number;           // name matching score
+  description_score?: number;    // description matching score
 }
 ```
 
