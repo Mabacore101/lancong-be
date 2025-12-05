@@ -35,6 +35,16 @@ def root():
 def health_check():
     return {"status": "healthy"}
 
+
+@app.get("/debug/env")
+def debug_env():
+    import os
+    return {
+        "NEO4J_URI": os.getenv("NEO4J_URI"),
+        "NEO4J_USER": os.getenv("NEO4J_USER"),
+        "NEO4J_PASSWORD": os.getenv("NEO4J_PASSWORD"),
+    }
+
 @app.get("/debug/config")
 def debug_config():
     """Debug endpoint to check configuration (remove in production)"""
@@ -50,6 +60,16 @@ def debug_config():
             "NEO4J_PASSWORD_env": "SET" if os.environ.get("NEO4J_PASSWORD") else "NOT SET"
         }
     }
+
+@app.get("/debug/neo4j-test")
+def test_neo4j():
+    """Test Neo4j connection"""
+    try:
+        from database.neo4j_connection import neo4j
+        result = neo4j.query("RETURN 1 as test")
+        return {"status": "success", "connection": "working", "result": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e), "type": type(e).__name__}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
