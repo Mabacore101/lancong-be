@@ -7,7 +7,7 @@ model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 # === Koneksi Neo4j ===
 uri = "neo4j://localhost:7687"
 user = "neo4j"
-password = "Allan123410"
+password = "takturisturislohmas"
 
 driver = GraphDatabase.driver(uri, auth=(user, password))
 
