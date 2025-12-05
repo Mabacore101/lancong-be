@@ -88,26 +88,21 @@ def search_places_with_reranking(q: str, initial_k: int = 20, top_k: int = 5):
     ) YIELD node, score
     RETURN node { .* } AS place, score AS vector_score
     """
-    # Rerank berdasarkan name (bisa ditambah description jika ada)
-    reranked = reranker.rerank(
-        query=q,
-        results=places_to_rerank,
-        text_field='name',
-        top_k=top_k
-    )
     
-    # Enrich top results with Wikidata
-    enriched = enrich_places_with_wikidata(reranked, max_enrich=top_k)
+    candidates = neo4j.query(cypher, {"initial_k": initial_k, "embedding": embedding})
     
-    # Wrap kembali dalam format yang konsisten dengan endpoint lain
-    return [{"place": place} for place in enriched]
+    if not candidates:
+        return []
+    
+    # Step 2: Extract places for reranking
     places_to_rerank = []
     for candidate in candidates:
         place = candidate.get('place', {})
         place['vector_score'] = candidate.get('vector_score', 0)
         places_to_rerank.append(place)
     
-    # Rerank berdasarkan name (bisa ditambah description jika ada)
+    # Step 3: Rerank berdasarkan name
+    reranker = get_reranker()
     reranked = reranker.rerank(
         query=q,
         results=places_to_rerank,
@@ -115,8 +110,11 @@ def search_places_with_reranking(q: str, initial_k: int = 20, top_k: int = 5):
         top_k=top_k
     )
     
+    # Step 4: Enrich top results with Wikidata
+    enriched = enrich_places_with_wikidata(reranked, max_enrich=top_k)
+    
     # Wrap kembali dalam format yang konsisten dengan endpoint lain
-    return [{"place": place} for place in reranked]
+    return [{"place": place} for place in enriched]
 
 def search_places_with_advanced_reranking(
     q: str, 
@@ -177,6 +175,9 @@ def search_places_with_advanced_reranking(
     else:
         # Fallback to simple reranking
         reranked = reranker.rerank(
+            query=q,
+            results=places_to_rerank,
+            text_field='name',
             top_k=top_k
         )
     
@@ -184,5 +185,3 @@ def search_places_with_advanced_reranking(
     enriched = enrich_places_with_wikidata(reranked, max_enrich=top_k)
     
     return [{"place": place} for place in enriched]
-    
-    return [{"place": place} for place in reranked]
