@@ -8,10 +8,16 @@ This project implements a REST API that interfaces with a Neo4j knowledge graph 
 
 ### Key Features
 
+#### Mandatory Features ✅
 - **Place Search**: Search for tourism places by name with fuzzy matching
 - **InfoBox**: Retrieve detailed information about specific places
 - **Package Management**: Browse tourism packages and their included places
 - **Query Console**: Execute custom Cypher queries against the knowledge graph
+
+#### Advanced Features ✅
+- **Vector Embedding**: Semantic representation of places using sentence transformers
+- **Semantic Search**: AI-powered search using vector similarity
+- **Reranking**: Cross-encoder model for improved search result relevance
 - **Graph Database**: Neo4j-powered knowledge graph for complex relationship queries
 
 ## Tech Stack
@@ -26,25 +32,31 @@ This project implements a REST API that interfaces with a Neo4j knowledge graph 
 
 ```
 KG Local/
-├── config.py                 # Configuration and environment variables
-├── main.py                   # FastAPI application entry point
-├── requirements.txt          # Python dependencies
-├── .env                      # Environment variables (not in git)
-├── .gitignore               # Git ignore rules
+├── config.py                      # Configuration and environment variables
+├── main.py                        # FastAPI application entry point
+├── embedding.py                   # Script to generate embeddings for all places
+├── requirements.txt               # Python dependencies
+├── README.md                      # Project documentation
+├── RERANKING_TEST.md             # Reranking testing guide
+├── RERANKING_EXAMPLES.md         # Reranking comparison examples
+├── .env                          # Environment variables (not in git)
+├── .gitignore                    # Git ignore rules
 ├── database/
-│   └── neo4j_connection.py  # Neo4j database connection handler
+│   └── neo4j_connection.py       # Neo4j database connection handler
 ├── models/
-│   └── schemas.py           # Pydantic models for data validation
+│   └── schemas.py                # Pydantic models for data validation
 ├── routers/
-│   ├── infobox.py           # InfoBox endpoint routes
-│   ├── packages.py          # Package management routes
-│   ├── query_console.py     # Query console routes
-│   └── search.py            # Search endpoint routes
+│   ├── infobox.py                # InfoBox endpoint routes
+│   ├── packages.py               # Package management routes
+│   ├── query_console.py          # Query console routes
+│   └── search.py                 # Search endpoints (keyword, semantic, reranking)
 └── services/
-    ├── neo4j_service.py     # Neo4j service layer (to be implemented)
-    ├── package_service.py   # Package business logic
-    ├── place_service.py     # Place business logic
-    └── search_service.py    # Search business logic
+    ├── neo4j_service.py          # Neo4j service layer
+    ├── package_service.py        # Package business logic
+    ├── place_service.py          # Place business logic
+    ├── search_service.py         # Search business logic (semantic + reranking)
+    ├── reranking_service.py      # Reranking service with cross-encoder
+    └── wikidata.py               # External KG integration (WikiData)
 ```
 
 ## Setup Instructions
@@ -110,7 +122,10 @@ Once the server is running, visit:
 ## API Endpoints
 
 ### Search
-- `GET /search/?query={query}` - Search for places by name
+- `GET /search/?query={query}` - Basic keyword search for places by name
+- `GET /search/semanticly?query={query}&k={k}` - Semantic search using vector embeddings
+- `GET /search/rerank?query={query}&initial_k={initial_k}&top_k={top_k}` - Semantic search with reranking
+- `GET /search/rerank-advanced?query={query}&initial_k={initial_k}&top_k={top_k}&use_description={bool}` - Advanced reranking with description
 
 ### InfoBox
 - `GET /infobox/{place_id}` - Get detailed information about a place
@@ -127,6 +142,49 @@ Once the server is running, visit:
   }
   ```
 
+## Advanced Features Details
+
+### Vector Embedding
+All tourism places are embedded using `sentence-transformers/all-MiniLM-L6-v2` model. Embeddings are stored in Neo4j for efficient vector similarity search.
+
+**Setup:**
+```bash
+python embedding.py
+```
+
+This will:
+1. Load all places from Neo4j
+2. Generate embeddings for each place name
+3. Store embeddings back to Neo4j
+
+### Semantic Search (`/search/semanticly`)
+Uses bi-encoder model for fast semantic similarity search:
+- Fast retrieval (~50-100ms)
+- Handles synonyms and related concepts
+- Uses Neo4j vector index for efficient querying
+
+### Reranking (`/search/rerank`)
+Two-stage retrieval for improved accuracy:
+
+**Stage 1 - Candidate Retrieval:**
+- Vector search retrieves initial_k candidates (default: 20)
+- Fast bi-encoder model (all-MiniLM-L6-v2)
+
+**Stage 2 - Reranking:**
+- Cross-encoder model (`cross-encoder/ms-marco-MiniLM-L-6-v2`) scores each candidate
+- More accurate but slower
+- Returns top_k best results (default: 5)
+
+**Performance:**
+- Speed: ~200-500ms (depends on initial_k)
+- Accuracy: Higher precision than vector search alone
+- Trade-off: Speed vs accuracy via initial_k parameter
+
+**Advanced Mode:**
+- Considers both name and description
+- Weighted scoring (70% name, 30% description by default)
+- Best for descriptive queries like "tempat wisata alam dengan air terjun"
+
 ## Database Schema
 
 The Neo4j database contains the following node types and relationships:
@@ -138,29 +196,40 @@ The Neo4j database contains the following node types and relationships:
 ### Relationships
 - `(Package)-[:INCLUDES]->(Place)`: Links packages to their included places
 
-## To Be Implemented
+## Features Status
 
-The following features and files are planned or need implementation:
+### ✅ Implemented (Mandatory)
+1. **Search**: Basic keyword search with fuzzy matching
+2. **InfoBox**: Detailed place information display
+3. **Query Console**: Execute custom Cypher queries
+4. **Packages**: Browse tourism packages and their places
 
-### High Priority
-1. **Semantic Search**: Integrate sentence-transformers for semantic search capabilities
-2. **Neo4j Service Layer** (`services/neo4j_service.py`): Create reusable Neo4j query functions
-3. **Enhanced Place Models**: Extend `models/schemas.py` with more detailed schemas
-4. **Error Handling**: Implement comprehensive error handling and validation
-5. **Authentication**: Add API authentication and authorization
+### ✅ Implemented (Advanced/Bonus)
+5. **Vector Embedding**: All places embedded using sentence transformers
+6. **Semantic Search**: AI-powered search using vector similarity
+7. **Reranking**: Cross-encoder for improved result relevance (Stage 1 & 2 retrieval)
 
-### Medium Priority
-6. **Recommendation System**: Implement place recommendation based on user preferences
-7. **Graph Analytics**: Add endpoints for graph statistics and analytics
-8. **Filtering**: Advanced filtering for place search (by category, rating, city)
+### 🔄 To Be Implemented (Optional Enhancement)
+
+#### High Priority
+1. **External Knowledge Graph Integration**: Link with DBpedia/Wikidata (partially done with WikiData service)
+2. **Enhanced Place Models**: Extend `models/schemas.py` with more detailed schemas
+3. **Error Handling**: Implement comprehensive error handling and validation
+4. **Filtering**: Advanced filtering for place search (by category, rating, city)
+
+#### Medium Priority
+5. **Question Answering**: Natural language QA system over knowledge graph
+6. **RAG Chatbot**: Combine KG with LLM for conversational interface
+7. **Recommendation System**: Place recommendation based on user preferences
+8. **Graph Analytics**: Endpoints for graph statistics and analytics
 9. **Pagination**: Implement pagination for list endpoints
-10. **Caching**: Add Redis caching for frequently accessed data
 
-### Low Priority
-11. **Testing**: Unit tests and integration tests
-12. **Docker**: Containerize the application
-13. **CI/CD**: Set up continuous integration and deployment
-14. **Logging**: Implement structured logging
+#### Low Priority
+10. **Testing**: Unit tests and integration tests
+11. **Docker**: Containerize the application
+12. **CI/CD**: Set up continuous integration and deployment
+13. **Caching**: Add Redis caching for frequently accessed data
+14. **Authentication**: Add API authentication and authorization
 15. **Monitoring**: Add application monitoring and metrics
 
 ## Development Notes
@@ -170,18 +239,3 @@ The following features and files are planned or need implementation:
 - All file paths should use absolute paths when calling tools
 - The Neo4j connection is established lazily on first query
 
-## Contributing
-
-When contributing to this project:
-1. Follow PEP 8 style guidelines
-2. Add docstrings to new functions and classes
-3. Update this README if adding new features
-4. Test endpoints using the Swagger UI at `/docs`
-
-## License
-
-[Add your license information here]
-
-## Contact
-
-[Add contact information here]
