@@ -1,19 +1,44 @@
 from database.neo4j_connection import neo4j
 from sentence_transformers import SentenceTransformer
 from services.reranking_service import get_reranker
+from services.wikidata import enrich_places_with_wikidata
 
-def search_places(q: str):
+def search_places(q: str, enrich: bool = True, max_enrich: int = 5):
+    """
+    Basic keyword search with optional Wikidata enrichment.
+    
+    Args:
+        q: Search query
+        enrich: Whether to enrich results with Wikidata (default: True)
+        max_enrich: Maximum number of results to enrich (default: 5)
+    """
     cypher = """
     MATCH (p:Place)
     WHERE toLower(p.name) CONTAINS toLower($q)
     RETURN p { .* } AS place
     LIMIT 20
     """
-    return neo4j.query(cypher, {"q": q})
+    results = neo4j.query(cypher, {"q": q})
+    
+    if not enrich or not results:
+        return results
+    
+    # Extract places, enrich, and wrap back
+    places = [r.get('place', {}) for r in results]
+    enriched = enrich_places_with_wikidata(places, max_enrich)
+    return [{"place": place} for place in enriched]
 
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-def search_places_vector(q: str, top_k: int = 5):
+def search_places_vector(q: str, top_k: int = 5, enrich: bool = True):
+    """
+    Semantic search with optional Wikidata enrichment.
+    
+    Args:
+        q: Search query
+        top_k: Number of results to return
+        enrich: Whether to enrich results with Wikidata (default: True)
+    """
     embedding = model.encode(q).tolist()
 
     cypher = """
@@ -25,7 +50,15 @@ def search_places_vector(q: str, top_k: int = 5):
     RETURN node { .* , score: score } AS place
     """
 
-    return neo4j.query(cypher, {"top_k": top_k, "embedding": embedding})
+    results = neo4j.query(cypher, {"top_k": top_k, "embedding": embedding})
+    
+    if not enrich or not results:
+        return results
+    
+    # Extract places, enrich, and wrap back
+    places = [r.get('place', {}) for r in results]
+    enriched = enrich_places_with_wikidata(places, top_k)
+    return [{"place": place} for place in enriched]
 
 def search_places_with_reranking(q: str, initial_k: int = 20, top_k: int = 5):
     """
@@ -55,16 +88,19 @@ def search_places_with_reranking(q: str, initial_k: int = 20, top_k: int = 5):
     ) YIELD node, score
     RETURN node { .* } AS place, score AS vector_score
     """
+    # Rerank berdasarkan name (bisa ditambah description jika ada)
+    reranked = reranker.rerank(
+        query=q,
+        results=places_to_rerank,
+        text_field='name',
+        top_k=top_k
+    )
     
-    candidates = neo4j.query(cypher, {"initial_k": initial_k, "embedding": embedding})
+    # Enrich top results with Wikidata
+    enriched = enrich_places_with_wikidata(reranked, max_enrich=top_k)
     
-    if not candidates:
-        return []
-    
-    # Step 2: Rerank using cross-encoder
-    reranker = get_reranker()
-    
-    # Extract place objects for reranking
+    # Wrap kembali dalam format yang konsisten dengan endpoint lain
+    return [{"place": place} for place in enriched]
     places_to_rerank = []
     for candidate in candidates:
         place = candidate.get('place', {})
@@ -141,10 +177,12 @@ def search_places_with_advanced_reranking(
     else:
         # Fallback to simple reranking
         reranked = reranker.rerank(
-            query=q,
-            results=places_to_rerank,
-            text_field='name',
             top_k=top_k
         )
+    
+    # Enrich top results with Wikidata
+    enriched = enrich_places_with_wikidata(reranked, max_enrich=top_k)
+    
+    return [{"place": place} for place in enriched]
     
     return [{"place": place} for place in reranked]

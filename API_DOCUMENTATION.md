@@ -23,16 +23,18 @@ Version: 1.0.0
 ### 1. Basic Keyword Search
 **GET** `/search/`
 
-Simple keyword-based search. Fastest but limited to exact/partial name matching.
+Simple keyword-based search. Fastest but limited to exact/partial name matching. Results are enriched with Wikidata by default.
 
 **Query Parameters:**
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `query` | string | ✅ Yes | - | Search keyword |
+| `enrich` | boolean | ❌ No | true | Enrich with Wikidata (image, entity, description) |
+| `max_enrich` | integer | ❌ No | 5 | Maximum results to enrich (for performance) |
 
 **Example Request:**
 ```http
-GET /search/?query=museum
+GET /search/?query=museum&enrich=true&max_enrich=5
 ```
 
 **Example Response:**
@@ -49,31 +51,35 @@ GET /search/?query=museum
       "rating": 4.5,
       "time_minutes": 120,
       "lat": -6.135,
-      "long": 106.814
+      "long": 106.814,
+      "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Museum%20Fatahillah.jpg",
+      "wikidata_entity": "http://www.wikidata.org/entity/Q12345",
+      "description_id": "Museum sejarah di Jakarta"
     }
   }
 ]
 ```
 
 **Use Case:** Quick autocomplete, simple searches  
-**Performance:** ~10-30ms
+**Performance:** ~10-30ms (without enrichment), ~50-100ms (with enrichment)
 
 ---
 
 ### 2. Semantic Search
 **GET** `/search/semanticly`
 
-AI-powered semantic search using vector embeddings. Understands meaning, not just keywords.
+AI-powered semantic search using vector embeddings. Understands meaning, not just keywords. Results are enriched with Wikidata by default.
 
 **Query Parameters:**
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `query` | string | ✅ Yes | - | Search query (natural language) |
 | `k` | integer | ❌ No | 5 | Number of results to return |
+| `enrich` | boolean | ❌ No | true | Enrich with Wikidata (image, entity, description) |
 
 **Example Request:**
 ```http
-GET /search/semanticly?query=monumen&k=5
+GET /search/semanticly?query=monumen&k=5&enrich=true
 ```
 
 **Example Response:**
@@ -88,7 +94,10 @@ GET /search/semanticly?query=monumen&k=5
       "city": "Jakarta",
       "price": 20000,
       "rating": 4.6,
-      "vector_score": 0.8523
+      "vector_score": 0.8523,
+      "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Monas.jpg",
+      "wikidata_entity": "http://www.wikidata.org/entity/Q67890",
+      "description_id": "Monumen ikonik di Jakarta"
     }
   }
 ]
@@ -96,16 +105,19 @@ GET /search/semanticly?query=monumen&k=5
 
 **Additional Fields:**
 - `vector_score`: Similarity score (0-1, higher = more similar)
+- `image`: Wikidata image URL (if enriched)
+- `wikidata_entity`: Wikidata entity URI (if enriched)
+- `description_id`: Indonesian description from Wikidata (if enriched)
 
 **Use Case:** General search, handles typos and synonyms  
-**Performance:** ~50-100ms
+**Performance:** ~50-100ms (without enrichment), ~150-200ms (with enrichment)
 
 ---
 
 ### 3. Semantic Search with Reranking
 **GET** `/search/rerank`
 
-Two-stage retrieval: fast vector search + accurate cross-encoder reranking.
+Two-stage retrieval: fast vector search + accurate cross-encoder reranking. Results are automatically enriched with Wikidata.
 
 **Query Parameters:**
 | Parameter | Type | Required | Default | Description |
@@ -132,7 +144,10 @@ GET /search/rerank?query=museum sejarah&initial_k=20&top_k=5
       "price": 5000,
       "rating": 4.5,
       "vector_score": 0.7823,
-      "rerank_score": 14.52
+      "rerank_score": 14.52,
+      "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Museum%20Fatahillah.jpg",
+      "wikidata_entity": "http://www.wikidata.org/entity/Q12345",
+      "description_id": "Museum sejarah di Jakarta"
     }
   }
 ]
@@ -141,9 +156,12 @@ GET /search/rerank?query=museum sejarah&initial_k=20&top_k=5
 **Additional Fields:**
 - `vector_score`: Initial similarity score
 - `rerank_score`: Cross-encoder relevance score (higher = more relevant)
+- `image`: Wikidata image URL
+- `wikidata_entity`: Wikidata entity URI
+- `description_id`: Indonesian description from Wikidata
 
 **Use Case:** Main search results, precise ranking needed  
-**Performance:** ~200-500ms
+**Performance:** ~200-500ms (includes automatic Wikidata enrichment)
 
 **Tuning Tips:**
 - `initial_k=10, top_k=3`: Faster (~150ms)
@@ -154,7 +172,7 @@ GET /search/rerank?query=museum sejarah&initial_k=20&top_k=5
 ### 4. Advanced Reranking with Description
 **GET** `/search/rerank-advanced`
 
-Considers both name AND description for matching. Best for descriptive queries.
+Considers both name AND description for matching. Best for descriptive queries. Results are automatically enriched with Wikidata.
 
 **Query Parameters:**
 | Parameter | Type | Required | Default | Description |
@@ -184,7 +202,10 @@ GET /search/rerank-advanced?query=tempat wisata dengan pemandangan laut&top_k=5&
       "vector_score": 0.7145,
       "name_score": 8.52,
       "description_score": 12.34,
-      "rerank_score": 9.63
+      "rerank_score": 9.63,
+      "image": "http://commons.wikimedia.org/wiki/Special:FilePath/Pulau%20Pelangi.jpg",
+      "wikidata_entity": "http://www.wikidata.org/entity/Q54321",
+      "description_id": "Pulau resort di Kepulauan Seribu"
     }
   }
 ]
@@ -194,9 +215,12 @@ GET /search/rerank-advanced?query=tempat wisata dengan pemandangan laut&top_k=5&
 - `name_score`: Relevance score from name matching
 - `description_score`: Relevance score from description matching
 - `rerank_score`: Combined score (70% name + 30% description)
+- `image`: Wikidata image URL
+- `wikidata_entity`: Wikidata entity URI
+- `description_id`: Indonesian description from Wikidata
 
 **Use Case:** Complex/descriptive queries, detailed searches  
-**Performance:** ~300-800ms
+**Performance:** ~300-800ms (includes automatic Wikidata enrichment)
 
 **Best For:**
 - "tempat wisata alam dengan air terjun"

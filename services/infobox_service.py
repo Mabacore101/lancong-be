@@ -1,5 +1,5 @@
 from database.neo4j_connection import neo4j
-from services.wikidata import fetch_wikidata_image
+from services.wikidata import fetch_wikidata_image, enrich_place_with_wikidata
 
 def get_infobox(place_id: int):
 
@@ -25,15 +25,6 @@ def get_infobox(place_id: int):
         return None
 
     info = result[0]["info"]
-
-    external = fetch_wikidata_image(info["name"])
-    if external:
-        info["image"] = external.get("image")
-        info["wikidata_entity"] = external.get("wikidata_entity")
-        info["description_id"] = external.get("description_id")
-    else:
-        info["image"] = None
-        info["wikidata_entity"] = None
-        info["description_id"] = None
-
-    return info
+    
+    # Enrich with Wikidata
+    return enrich_place_with_wikidata(info)
