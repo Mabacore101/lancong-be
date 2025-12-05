@@ -239,18 +239,3 @@ The Neo4j database contains the following node types and relationships:
 - All file paths should use absolute paths when calling tools
 - The Neo4j connection is established lazily on first query
 
-## Contributing
-
-When contributing to this project:
-1. Follow PEP 8 style guidelines
-2. Add docstrings to new functions and classes
-3. Update this README if adding new features
-4. Test endpoints using the Swagger UI at `/docs`
-
-## License
-
-[Add your license information here]
-
-## Contact
-
-[Add contact information here]
