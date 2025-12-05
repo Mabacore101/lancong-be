@@ -1,15 +1,35 @@
 from database.neo4j_connection import neo4j
 
-def get_packages():
+def get_package(package_id: int):
     cypher = """
-    MATCH (p:Package)
-    RETURN p { .* } AS package
+    MATCH (pkg:Package {id: $id})
+    OPTIONAL MATCH (pkg)-[:INCLUDES]->(p:Place)
+    WITH pkg, collect({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        rating: p.rating
+    }) AS places
+    RETURN {
+        id: pkg.id,
+        city: pkg.city,
+        places: places
+    } AS package
     """
-    return neo4j.query(cypher)
+    result = neo4j.query(cypher, {"id": package_id})
+    return result[0]["package"] if result else None
 
-def get_package_places(id: int):
+
+
+def get_packages(limit: int):
     cypher = """
-    MATCH (pkg:Package {id: $id})-[:INCLUDES]->(pl:Place)
-    RETURN pl { .* } AS place
+    MATCH (pkg:Package)
+    RETURN {
+        id: pkg.id,
+        city: pkg.city
+    } AS package
+    LIMIT $limit
     """
-    return neo4j.query(cypher, {"id": id})
+    result = neo4j.query(cypher, {"limit": limit})
+    return [row["package"] for row in result]
+

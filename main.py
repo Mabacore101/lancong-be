@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import search, infobox, query_console, packages
+from routers import search, infobox, query_console, packages, places
 
 app = FastAPI(
     title="Tourism Cuy KG Backend",
@@ -10,3 +10,4 @@ app.include_router(search.router)
 app.include_router(infobox.router)
 app.include_router(query_console.router)
 app.include_router(packages.router)
+app.include_router(places.router)
